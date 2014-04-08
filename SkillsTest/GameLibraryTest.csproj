@@ -8,8 +8,8 @@
     <ProjectGuid>{64061CEE-F1AB-4E1E-B635-7368FCF7A481}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SkillsTest</RootNamespace>
-    <AssemblyName>SkillsTest</AssemblyName>
+    <RootNamespace>GameLibraryTest</RootNamespace>
+    <AssemblyName>GameLibraryTest</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>

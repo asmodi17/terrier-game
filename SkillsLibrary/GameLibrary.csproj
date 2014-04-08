@@ -8,8 +8,8 @@
     <ProjectGuid>{490A1E37-EA47-4921-86B4-899A7DC29DF5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SkillsLibrary</RootNamespace>
-    <AssemblyName>SkillsLibrary</AssemblyName>
+    <RootNamespace>GameLibrary</RootNamespace>
+    <AssemblyName>GameLibrary</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Action.cs" />
+    <Compile Include="DungeonBuilder_Old.cs" />
     <Compile Include="TypesAndGameObjectDef.cs" />
     <Compile Include="Item.cs" />
     <Compile Include="Player.cs" />
