@@ -7,14 +7,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameLibraryTest", "SkillsTe
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{526C5EEB-D3C0-4D77-A781-375B5F753C1A}"
 	ProjectSection(SolutionItems) = preProject
+		GameLibrary.vsmdi = GameLibrary.vsmdi
 		Local.testsettings = Local.testsettings
-		SkillsLibrary.vsmdi = SkillsLibrary.vsmdi
 		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
 	EndProjectSection
 EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = SkillsLibrary.vsmdi
+		CategoryFile = GameLibrary.vsmdi
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
