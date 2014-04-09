@@ -50,38 +50,38 @@ namespace GameLibrary
             switch (Family.Primary)
             {
                 case stats.dexterity:
-                    Mod += (int)(Family.Ratio * p.Dexterity);
+                    Mod += (int)(Family.Ratio * (double)p.Dexterity);
                     break;
                 case stats.health:
-                    Mod += (int)(Family.Ratio * p.Health);
+                    Mod += (int)(Family.Ratio * (double)p.Health);
                     break;
                 case stats.stamina:
-                    Mod += (int)(Family.Ratio * p.Stamina);
+                    Mod += (int)(Family.Ratio * (double)p.Stamina);
                     break;
                 case stats.strength:
-                    Mod += (int)(Family.Ratio * p.Strength);
+                    Mod += (int)(Family.Ratio * (double)p.Strength);
                     break;
                 case stats.will:
-                    Mod += (int)(Family.Ratio * p.Will);
+                    Mod += (int)(Family.Ratio * (double)p.Will);
                     break;
             }
 
             switch (Family.Secondary)
             {
                 case stats.dexterity:
-                    Mod += (int)((1.0 - Family.Ratio) * p.Dexterity);
+                    Mod += (int)((1.0 - Family.Ratio) * (double)p.Dexterity);
                     break;
                 case stats.health:
-                    Mod += (int)((1.0 - Family.Ratio) * p.Health);
+                    Mod += (int)((1.0 - Family.Ratio) * (double)p.Health);
                     break;
                 case stats.stamina:
-                    Mod += (int)((1.0 - Family.Ratio) * p.Stamina);
+                    Mod += (int)((1.0 - Family.Ratio) * (double)p.Stamina);
                     break;
                 case stats.strength:
-                    Mod += (int)((1.0 - Family.Ratio) * p.Strength);
+                    Mod += (int)((1.0 - Family.Ratio) * (double)p.Strength);
                     break;
                 case stats.will:
-                    Mod += (int)((1.0 - Family.Ratio) * p.Will);
+                    Mod += (int)((1.0 - Family.Ratio) * (double)p.Will);
                     break;
             }
         }
@@ -97,10 +97,9 @@ namespace GameLibrary
             RankXP = 0;
         }
 
-        // Something to consider:  Take into account the opposing skill ranks
-        // Idea:  Modify max with percentage difference inside possibility (going against
-        //      a player with a higher level makes you more likely to improve)
-        public void CheckForRepetitiveImprove(Player P, Random R, int opposingSkillRank)
+        // Idea: incorporate success vs. failure improvement.  Success should grant ~15% of normal chance
+        // failur should grant 100% of normal chance.
+        public void CheckForRepetitiveImprove(Player P, Random R, int opposingSkillMod, bool isSuccess)
         {
             int max = (Ranks < 10) ? Ranks * 10 : (int)Math.Pow((double)2.0, (double)(Ranks - 3));
             if (max <= 0) max = 10;
@@ -108,23 +107,29 @@ namespace GameLibrary
             double chance = 1.0 / (Math.Log10(possibility)); // scale from approximately 2 to arbitrarily large number (if rankxp is high enough)
             // This possibility of chance being negative is small and implies an overflow.
 
-            if (opposingSkillRank != 0)
+            if (opposingSkillMod != 0)
             {
-                if (opposingSkillRank > Ranks)
+                if (opposingSkillMod > Mod)
                 {
                     // the chance to improve is higher, so divide the chance before converting to an int
-                    chance = chance * ((double)opposingSkillRank / ((double)opposingSkillRank + (double)Ranks));
+                    chance = chance * ((double)opposingSkillMod / ((double)opposingSkillMod + (double)Mod));
                 }
-                else if (opposingSkillRank < Ranks)
+                else if (opposingSkillMod < Mod)
                 {
                     // the chance to improve is lower, so multiply the chance before converting to an int
-                    chance = chance * ((double)opposingSkillRank + (double)Ranks) / (double)opposingSkillRank;
+                    chance = chance * ((double)opposingSkillMod + (double)Mod) / (double)opposingSkillMod;
                 }
             }
 
+            // the boolean isSuccess multiplies the value to be input to the R.Next method.  This gives the user
+            // approximately 15% chance of improving vs a failure improvement check.
+            if (isSuccess) chance *= 7.0;
+
             //Console.WriteLine(possibility.ToString() + " => " + chance.ToString());
             int chanceConverted = (chance < 0) ? 0 - (int)chance : (int)chance;
-            if (R.Next(chanceConverted) >= chanceConverted - 2)
+            int rand = R.Next(chanceConverted) + 2;
+            //Console.WriteLine(rand + " " + chanceConverted);
+            if (rand >= chanceConverted)
             {
                 RankXP += 1;
                 //Console.WriteLine(P.Name + " - " + Name + " RankXP: " + RankXP);

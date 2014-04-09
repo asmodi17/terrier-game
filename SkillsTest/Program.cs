@@ -25,21 +25,37 @@ namespace GameLibraryTest
             Weapon sword2 = new Weapon("Sword 2", "Just another sword", weaponSlots.leftHand, damageTypes.slash, equipmentEnhancements.none, skills["Sword"], false);
             Weapon sword3 = (Weapon)sword.Duplicate();
             sword3.Name = "Sword 3";
+            Weapon shield = new Weapon("Shield", "Just a shield", weaponSlots.rightHand, damageTypes.bludgeon, equipmentEnhancements.none, skills["Shield"], true);
 
 
             Player A = new Player("Player A", true, initialPlayerSkills.Values, skillFamilies.Values, true, R);
-            Player B = new Player("Player B", true, initialPlayerSkills.Values, skillFamilies.Values, false, R);
+            Player B = new Player("Player B", true, initialPlayerSkills.Values, skillFamilies.Values, true, R);
+
+            /*A.GetSkill("Dodge").ChangeRank(B, 100);
+            A.GetSkill("Brawling").ChangeRank(B, 100);
+            A.GetSkill("Hit").ChangeRank(B, 100);
+
+            B.GetSkill("Dodge").ChangeRank(B, 100);
+            B.GetSkill("Brawling").ChangeRank(B, 100);
+            B.GetSkill("Hit").ChangeRank(B, 100);*/
 
             A.AddItemToInventory(sword);
             A.AddItemToInventory(sword3);
 
             B.AddItemToInventory(sword2);
+            B.AddItemToInventory(shield);
 
-            Console.Write(A.EquipWeapon(sword.Name, weaponSlots.leftHand));
-            Console.Write(A.EquipWeapon(sword3.Name, weaponSlots.rightHand));
-            Console.Write(B.EquipWeapon(sword2.Name, weaponSlots.rightHand));
+            //Console.Write(A.EquipWeapon(sword.Name, weaponSlots.leftHand));
+            //Console.Write(A.EquipWeapon(sword3.Name, weaponSlots.rightHand));
+            //Console.Write(B.EquipWeapon(sword2.Name, weaponSlots.rightHand));
+            //Console.Write(B.EquipWeapon(shield.Name, weaponSlots.leftHand));
 
-            IAction someAction = A.GetAction("Attack with Sword");
+            // It shouldn't matter which attack action is used.
+            // TODO: modify the GetAction and other methods to handle only
+            //      one attack action.  This will use all weapons currently
+            //      equipped and modify its own delay whenever equipped items
+            //      change.
+            IAction someAction = A.GetAction("Unarmed Attack");
             if (someAction != null) {
                 if (someAction.Type == actionTypes.battleAction)
                 {
@@ -47,7 +63,7 @@ namespace GameLibraryTest
                 }
             }
 
-            IAction someOtherAction = B.GetAction("Attack with Sword");
+            IAction someOtherAction = B.GetAction("Unarmed Attack");
             if (someOtherAction != null) {
                 if (someOtherAction.Type == actionTypes.battleAction)
                 {
@@ -82,10 +98,23 @@ namespace GameLibraryTest
                     }
                 }
             }
+
+            ListPlayerStats(A);
             ListAvailableSkills(A);
+            ListPlayerStats(B);
             ListAvailableSkills(B);
 
             Console.ReadKey();
+        }
+
+        private static void ListPlayerStats(Player A)
+        {
+            Console.WriteLine(A.Name + " Stats:");
+            Console.WriteLine("Strength: " + A.Strength.ToString());
+            Console.WriteLine("Dexterity: " + A.Dexterity.ToString());
+            Console.WriteLine("Health: " + A.Health.ToString());
+            Console.WriteLine("Stamina: " + A.Stamina.ToString());
+            Console.WriteLine("Will: " + A.Will.ToString());
         }
 
         private static void ListAvailableSkills(Player A)
@@ -174,8 +203,8 @@ namespace GameLibraryTest
             List<IAction> skillActions = new List<IAction>();
             skillActions.Add(swordAttack);
             Skill Sword = new Skill("Sword", sf[families.physicalAttack], skillActions, true);
-
-            PlayerBattleAction fistAttack = new PlayerBattleAction("Unarmed Attack", 1000, battleActionTypes.attack);
+            
+            PlayerBattleAction fistAttack = new PlayerBattleAction("Unarmed Attack", 500, battleActionTypes.attack);
             skillActions = new List<IAction>();
             skillActions.Add(fistAttack);
             Skill Brawling = new Skill("Brawling", sf[families.physicalAttack], skillActions, true);
@@ -185,6 +214,16 @@ namespace GameLibraryTest
             skillActions.Add(shieldAttack);
             Skill Shield = new Skill("Shield", sf[families.physicalDefense], skillActions, true);
 
+            PlayerBattleAction greaveAttack = new PlayerBattleAction("Attack with GreaveBlades", 750, battleActionTypes.attack);
+            skillActions = new List<IAction>();
+            skillActions.Add(greaveAttack);
+            Skill GreaveBlades = new Skill("Greave Blades", sf[families.physicalAttack], skillActions, true);
+
+            PlayerBattleAction haftedAttack = new PlayerBattleAction("Attack with Hafted", 1250, battleActionTypes.attack);
+            skillActions = new List<IAction>();
+            skillActions.Add(haftedAttack);
+            Skill Hafted = new Skill("Hafted", sf[families.physicalAttack], skillActions, true);
+
             skills.Add("Parry", Parry);
             skills.Add("Dodge", Dodge);
             skills.Add("Hit", Hit);
@@ -192,6 +231,8 @@ namespace GameLibraryTest
             skills.Add("Sword", Sword);
             skills.Add("Brawling", Brawling);
             skills.Add("Shield", Shield);
+            skills.Add("Greave Blades", GreaveBlades);
+            skills.Add("Hafted", Hafted);
         }
 
         static Dictionary<string, Skill> InitializePlayerSkillSet(Dictionary<string, Skill> skills)
@@ -208,7 +249,7 @@ namespace GameLibraryTest
             foreach (string s in skills.Keys)
             {
                 // Add the restricted skills to this if statement
-                if (!(s.Equals("Sword") || s.Equals("Shield")))
+                if (!(s.Equals("Sword") || s.Equals("Shield") || s.Equals("Greave Blades") || s.Equals("Hafted")))
                 {
                     result.Add(s, skills[s]);
                 }

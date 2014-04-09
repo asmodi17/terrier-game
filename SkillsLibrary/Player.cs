@@ -633,26 +633,28 @@ namespace GameLibrary
             AutoAttack = true;
             AutoRetaliate = true;
 
-            Strength = 1;
-            Stamina = 1;
-            Dexterity = 1;
-            Health = 1;
-            Will = 1;
+            Strength = 5;//R.Next(10) + 1;
+            Stamina = 5;// R.Next(10) + 1;
+            Dexterity = 5;// R.Next(10) + 1;
+            Health = 5;// R.Next(10) + 1;
+            Will = 5;// R.Next(10) + 1;
             HP = HPMax = 1000 + Health * 10;
             HPRatio = (double)HP / (double)HPMax;
             SP = SPMax = 1000 + Stamina * 10;
             SPRatio = (double)SP / (double)SPMax;
             WP = WPMax = 1000 + Will * 10;
             WPRatio = (double)WP / (double)WPMax;
-
-            foreach (Skill s in skills)
-            {
-                this.Skills.Add(s.Duplicate());
-            }
-
+            
             foreach (SkillFamily sf in skillFamilies)
             {
                 this.SkillFamilies.Add(sf.Duplicate());
+            }
+
+            foreach (Skill s in skills)
+            {
+                Skill skillToAdd = s.Duplicate();
+                skillToAdd.SetMod(this);
+                Skills.Add(skillToAdd);
             }
         }
 
@@ -823,7 +825,7 @@ namespace GameLibrary
             // Next, start the timer.  This action cannot be performed again until the timer finishes.
             a.CanPerform = false;
             a.Timer.Start();
-
+            
             // Now we have a hit roll and a block roll
             if (hit <= block)
             {
@@ -831,46 +833,68 @@ namespace GameLibrary
                 // Failure produces more possibility of improvement than a success
                 // When it is a hit, we need to increment the rankXP for all skills associated
                 // This means we need to improve hit, damage, all weapon skills, and multiple attacks (if applicable)
-                HashSet<Skill> skillsToImprove = new HashSet<Skill>();
-                skillsToImprove.Add(GetSkill("Hit"));
-                int count = 0;
-                foreach (Weapon w in GetWeapons("Attack"))
-                {
-                    skillsToImprove.Add(GetSkill(w.AssociatedSkill.Name));
-                    count = count + 1;
-                }
-                if (count >= 2) skillsToImprove.Add(GetSkill("Multiple Attacks"));
 
-                // As the RankXP of a given skill gets closer to the max XP for that rank, the possibility of a 
-                // repetitive improve should decrease.  Ideally, we want the range for chance improvements to be
-                // around 0.5 for RankXP==0, and 0.1 for RankXP==(MaxXP-1)
-                // Log10(3) ~0.5, Log10(1.025) ~0.01
-                // The range for an improvement should be 1.025 to 3
-                foreach (Skill s in skillsToImprove)
+                // Only improve if the player initiating the attack is a PC, not an NPC
+                if (IsPlayer)
                 {
-                    int parryRank = Defender.GetSkill("Parry").Ranks;
-                    int dodgeRank = Defender.GetSkill("Dodge").Ranks;
-                    int higherDefenderSkillRank = (parryRank >= dodgeRank) ? parryRank : dodgeRank;
-                    s.CheckForRepetitiveImprove(this, R, higherDefenderSkillRank);
+                    HashSet<Skill> skillsToImprove = new HashSet<Skill>();
+                    skillsToImprove.Add(GetSkill("Hit"));
+                    int count = 0;
+                    foreach (Weapon w in GetWeapons("Attack"))
+                    {
+                        skillsToImprove.Add(GetSkill(w.AssociatedSkill.Name));
+                        count = count + 1;
+                    }
+                    if (count >= 2) skillsToImprove.Add(GetSkill("Multiple Attacks"));
+                    else if (count == 0) skillsToImprove.Add(GetSkill("Brawling"));
+
+                    // As the RankXP of a given skill gets closer to the max XP for that rank, the possibility of a 
+                    // repetitive improve should decrease.  Ideally, we want the range for chance improvements to be
+                    // around 0.5 for RankXP==0, and 0.1 for RankXP==(MaxXP-1)
+                    // Log10(3) ~0.5, Log10(1.025) ~0.01
+                    // The range for an improvement should be 1.025 to 3
+                    foreach (Skill s in skillsToImprove)
+                    {
+                        Skill parry = Defender.GetSkill("Parry");
+                        Skill dodge = Defender.GetSkill("Dodge");
+                        int higherDefenderSkillMod = (parry.Ranks >= dodge.Ranks) ? parry.Mod : dodge.Mod;
+                        s.CheckForRepetitiveImprove(this, R, higherDefenderSkillMod, false);
+                    }
                 }
             }
             else
             {
                 // It was a hit
-                HashSet<Skill> skillsToImprove = new HashSet<Skill>();
-                skillsToImprove.Add(Defender.GetSkill("Parry"));
-                skillsToImprove.Add(Defender.GetSkill("Dodge"));
-                int count = 0;
-                foreach (Weapon w in Defender.GetWeapons("Parry"))
-                {
-                    skillsToImprove.Add(Defender.GetSkill(w.AssociatedSkill.Name));
-                    count = count + 1;
-                }
-                if (count >= 2) skillsToImprove.Add(Defender.GetSkill("Multiple Attacks"));
 
-                foreach (Skill s in skillsToImprove)
+                // Only improve the defender if the Defender is a PC, not an NPC
+                if (Defender.IsPlayer)
                 {
-                    s.CheckForRepetitiveImprove(Defender, R, GetSkill("Hit").Ranks);
+                    HashSet<Skill> skillsToImprove = new HashSet<Skill>();
+                    int count = 0;
+                    foreach (Weapon w in Defender.GetWeapons("Parry"))
+                    {
+                        skillsToImprove.Add(Defender.GetSkill(w.AssociatedSkill.Name));
+                        count = count + 1;
+                    }
+
+                    skillsToImprove.Add(Defender.GetSkill("Dodge"));
+
+                    if (count >= 2)
+                    {
+                        skillsToImprove.Add(Defender.GetSkill("Multiple Attacks"));
+                        skillsToImprove.Add(Defender.GetSkill("Parry"));
+                    }
+                    else if (count == 0) skillsToImprove.Add(Defender.GetSkill("Brawling"));
+                    else skillsToImprove.Add(Defender.GetSkill("Parry"));
+
+                    foreach (Skill s in skillsToImprove)
+                    {
+                        // If brawling is being used, then we can check for dodge improvements twice (as the player
+                        // cannot use parry)
+                        Skill hitSkill = GetSkill("Hit");
+                        if (count == 0 && s.Name.Equals("Dodge")) s.CheckForRepetitiveImprove(Defender, R, hitSkill.Mod, false);
+                        s.CheckForRepetitiveImprove(Defender, R, hitSkill.Mod, false);
+                    }
                 }
 
                 // Can't just do this.
@@ -922,7 +946,10 @@ namespace GameLibrary
         //public double AttackRatio { get; set; }
 
         /// <summary>
-        /// GetAttackModifier returns a modifier based on Weapon, Hit, and Multiple Attacks skills
+        /// GetAttackModifier returns a modifier based on Weapon, Hit, and Multiple Attacks skills.
+        /// We aren't really handling the Brawling case very well.  Current paradigm is to determine
+        /// which weapons (if any) are currently equipped and performing the attacks in that manner.
+        /// This isn't really valid, though.  What we should do, is take the 
         /// </summary>
         /// <returns></returns>
         public int GetAttackModifier()
@@ -965,13 +992,12 @@ namespace GameLibrary
                     }
                     result += (int)hit;
                     result += (int)(weaponSkillMultiplier * ((double)s.Ranks) / (2.0 * (double)attackingWeapons.Count));
-                    result += (int)(weaponSkillMultiplier * ((double)GetSkillFamily(s.Family.Name).Ranks) / (2.0 * (double)attackingWeapons.Count));
                 }
             }
             else
             {
                 // a player can attack unarmed
-                Skill s = GetSkill("Unarmed");
+                Skill s = GetSkill("Brawling");
                 result += Hit.Mod + s.Mod;
             }
             
@@ -999,8 +1025,7 @@ namespace GameLibrary
 
             result += (int)(((double)Dodge.Mod) * (1 - DefenseRatio));
             
-            // Both Parry and Dodge use the same SkillFamily, so only add the SkillFamily Ranks once
-            result += GetSkillFamily(Dodge.Family.Name).Ranks;
+            // Both Parry and Dodge use the same SkillFamily which is included in Skill.Mod
             List<Weapon> ParryingItems = new List<Weapon>();
             foreach (Weapon w in GetWeapons("Parry"))
             {
@@ -1041,13 +1066,19 @@ namespace GameLibrary
             {
                 // When creating the Block modifier, we only need to account for
                 // the Parry Mod and the weapon ranks
-                result += (int)((double)Parry.Mod*DefenseRatio);
+                result += (int)((double)Parry.Mod * DefenseRatio);
                 foreach (Weapon i in ParryingItems)
                 {
                     Skill s = GetSkill((i.AssociatedSkill).Name);
                     if (s == null) throw new Exception("There was a problem.  Somewhere along the lines the skill for " + i.Name + " got lost.");
                     result += s.Ranks;
                 }
+            }
+            else
+            {
+                // If no weapons are equipped, then use the Brawling skill and the Dodge Skill again.
+                Skill s = GetSkill("Brawling");
+                result += s.Mod + Dodge.Mod; // This means that Dodge will provide (1 + (1-DefenseRatio)) * Dodge.Mod-a hefty bonus.
             }
 
             return result;
