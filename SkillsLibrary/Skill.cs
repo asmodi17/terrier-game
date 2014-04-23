@@ -122,8 +122,8 @@ namespace GameLibrary
             }
 
             // the boolean isSuccess multiplies the value to be input to the R.Next method.  This gives the user
-            // approximately 15% chance of improving vs a failure improvement check.
-            if (isSuccess) chance *= 7.0;
+            // approximately 4% chance of improving vs a failure improvement check.
+            if (isSuccess) chance *= 25.0;
 
             //Console.WriteLine(possibility.ToString() + " => " + chance.ToString());
             int chanceConverted = (chance < 0) ? 0 - (int)chance : (int)chance;

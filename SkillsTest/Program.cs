@@ -21,11 +21,11 @@ namespace GameLibraryTest
 
             Dictionary<string, Skill> initialPlayerSkills = InitializePlayerSkillSet(skills);
 
-            Weapon sword = new Weapon("Sword", "Just a sword", weaponSlots.leftHand, damageTypes.slash, equipmentEnhancements.none, skills["Sword"], false);
-            Weapon sword2 = new Weapon("Sword 2", "Just another sword", weaponSlots.leftHand, damageTypes.slash, equipmentEnhancements.none, skills["Sword"], false);
+            Weapon sword = new Weapon("Sword", "Just a sword", weaponSlots.leftHand, damageTypes.slash, equipmentEnhancements.none, skills["Sword"], 1000, false);
+            Weapon sword2 = new Weapon("Sword 2", "Just another sword", weaponSlots.leftHand, damageTypes.slash, equipmentEnhancements.none, skills["Sword"], 1000, false);
             Weapon sword3 = (Weapon)sword.Duplicate();
             sword3.Name = "Sword 3";
-            Weapon shield = new Weapon("Shield", "Just a shield", weaponSlots.rightHand, damageTypes.bludgeon, equipmentEnhancements.none, skills["Shield"], true);
+            Weapon shield = new Weapon("Shield", "Just a shield", weaponSlots.rightHand, damageTypes.bludgeon, equipmentEnhancements.none, skills["Shield"], 1500, true);
 
 
             Player A = new Player("Player A", true, initialPlayerSkills.Values, skillFamilies.Values, true, R);
@@ -45,17 +45,17 @@ namespace GameLibraryTest
             B.AddItemToInventory(sword2);
             B.AddItemToInventory(shield);
 
-            //Console.Write(A.EquipWeapon(sword.Name, weaponSlots.leftHand));
-            //Console.Write(A.EquipWeapon(sword3.Name, weaponSlots.rightHand));
-            //Console.Write(B.EquipWeapon(sword2.Name, weaponSlots.rightHand));
-            //Console.Write(B.EquipWeapon(shield.Name, weaponSlots.leftHand));
+            Console.Write(A.EquipWeapon(sword.Name, weaponSlots.leftHand));
+            Console.Write(A.EquipWeapon(sword3.Name, weaponSlots.rightHand));
+            Console.Write(B.EquipWeapon(sword2.Name, weaponSlots.rightHand));
+            Console.Write(B.EquipWeapon(shield.Name, weaponSlots.leftHand));
 
             // It shouldn't matter which attack action is used.
             // TODO: modify the GetAction and other methods to handle only
             //      one attack action.  This will use all weapons currently
             //      equipped and modify its own delay whenever equipped items
             //      change.
-            IAction someAction = A.GetAction("Unarmed Attack");
+            IAction someAction = A.GetAction("Attack");
             if (someAction != null) {
                 if (someAction.Type == actionTypes.battleAction)
                 {
@@ -63,7 +63,7 @@ namespace GameLibraryTest
                 }
             }
 
-            IAction someOtherAction = B.GetAction("Unarmed Attack");
+            IAction someOtherAction = B.GetAction("Attack");
             if (someOtherAction != null) {
                 if (someOtherAction.Type == actionTypes.battleAction)
                 {
@@ -199,27 +199,27 @@ namespace GameLibraryTest
             Skill Hit = new Skill("Hit", sf[families.physicalAttack], new List<IAction>(), true);
             Skill MultipleAttacks = new Skill("Multiple Attacks", sf[families.physicalAttack], new List<IAction>(), true);
 
-            PlayerBattleAction swordAttack = new PlayerBattleAction("Attack with Sword", 1000, battleActionTypes.attack);
+            PlayerBattleAction swordAttack = new PlayerBattleAction("Attack", 1000, battleActionTypes.attack);
             List<IAction> skillActions = new List<IAction>();
             skillActions.Add(swordAttack);
             Skill Sword = new Skill("Sword", sf[families.physicalAttack], skillActions, true);
             
-            PlayerBattleAction fistAttack = new PlayerBattleAction("Unarmed Attack", 500, battleActionTypes.attack);
+            PlayerBattleAction fistAttack = new PlayerBattleAction("Attack", 500, battleActionTypes.attack);
             skillActions = new List<IAction>();
             skillActions.Add(fistAttack);
             Skill Brawling = new Skill("Brawling", sf[families.physicalAttack], skillActions, true);
 
-            PlayerBattleAction shieldAttack = new PlayerBattleAction("Attack with Shield", 1500, battleActionTypes.attack);
+            PlayerBattleAction shieldAttack = new PlayerBattleAction("Attack", 1500, battleActionTypes.attack);
             skillActions = new List<IAction>();
             skillActions.Add(shieldAttack);
             Skill Shield = new Skill("Shield", sf[families.physicalDefense], skillActions, true);
 
-            PlayerBattleAction greaveAttack = new PlayerBattleAction("Attack with GreaveBlades", 750, battleActionTypes.attack);
+            PlayerBattleAction greaveAttack = new PlayerBattleAction("Attack", 750, battleActionTypes.attack);
             skillActions = new List<IAction>();
             skillActions.Add(greaveAttack);
             Skill GreaveBlades = new Skill("Greave Blades", sf[families.physicalAttack], skillActions, true);
 
-            PlayerBattleAction haftedAttack = new PlayerBattleAction("Attack with Hafted", 1250, battleActionTypes.attack);
+            PlayerBattleAction haftedAttack = new PlayerBattleAction("Attack", 1250, battleActionTypes.attack);
             skillActions = new List<IAction>();
             skillActions.Add(haftedAttack);
             Skill Hafted = new Skill("Hafted", sf[families.physicalAttack], skillActions, true);

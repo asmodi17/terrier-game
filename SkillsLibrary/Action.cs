@@ -46,7 +46,6 @@ namespace GameLibrary
         public battleActionTypes BType { get; private set; }
         public actionTypes Type { get; private set; }
 
-
         // Damage is relative, and can be negative or positive.
         // Negative damage indicates healing
         // Positive damage indicates damage.
@@ -60,7 +59,7 @@ namespace GameLibrary
         public void SetCheckModifier(int i) { CheckModifier = i; }
 
         public void SetDamage(int i) { Damage = i; }
-        public void SetDelay(int i) { Delay = i; }
+        public void SetDelay(int i) { Delay = i; Timer.Interval = (double)Delay; }
 
         // A BattleAction has a target
         public GameObject Target;
@@ -85,7 +84,7 @@ namespace GameLibrary
 
         public System.Timers.Timer Timer;
 
-        public IAction Duplicate()
+        public virtual IAction Duplicate()
         {
             PlayerBattleAction result = new PlayerBattleAction(Name, Delay, BType);
             
@@ -98,6 +97,59 @@ namespace GameLibrary
         // weapons, and is entirely a property of skill and stats.
         // How then is damage calculated?  Weapon Skill vs. Armor Skill?
         // The Action itself can't deal damage, only the player can deal damage.
+    }
+
+    public class BuffAction : PlayerBattleAction
+    {
+        public System.Timers.Timer BuffTimer;
+        public int BuffDelay { get; private set; }
+        public void SetBuffDelay(int i) { BuffDelay = i; BuffTimer.Interval = (double)i; }
+        public stats Stat { get; private set; }
+        // BuffActions can only be performed on Players
+
+        public void PerformBuff()
+        {
+            // Since BuffActions can only be performed on Players, the Target must be set and unset.
+            Player p = (Player)Target;
+            if (p != null)
+            {
+                p.SetStat(Stat, Damage);
+            }
+            else
+            {
+                throw new ArgumentNullException("The target of a BuffAction cannot be null.");
+            }
+        }
+
+        public void PerformDeBuff()
+        {
+            // Since BuffActions can only be performed on Players, the Target must be set and unset.
+            Player p = (Player)Target;
+            if (p != null)
+            {
+                p.SetStat(Stat, -Damage);
+            }
+            else
+            {
+                throw new ArgumentNullException("The target of a BuffAction cannot be null.");
+            }
+        }
+
+        public BuffAction(string name, int actionDelay, int buffDelay, stats stat, int damage)
+            : base(name, actionDelay, battleActionTypes.buff)
+        {
+            Stat = stat;
+            BuffTimer = new System.Timers.Timer((double)buffDelay);
+            BuffDelay = buffDelay;
+            SetDamage(damage);
+        }
+
+        public override IAction Duplicate()
+        {
+            PlayerBattleAction result = new BuffAction(Name, Delay, BuffDelay, Stat, Damage);
+
+            return result;
+        }
     }
 
     public class SkillAction : IAction

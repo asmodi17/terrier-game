@@ -64,18 +64,20 @@ namespace GameLibrary
         public weaponSlots Slot { get; set; }
         public damageTypes DType { get; private set; }
         public bool IsShield { get; private set; }
+        public int Delay { get; private set; }
 
         public override GameObject Duplicate()
         {
-            return new Weapon(Name, Desc, Slot, DType, Enhanced, AssociatedSkill.Duplicate(), IsShield);
+            return new Weapon(Name, Desc, Slot, DType, Enhanced, AssociatedSkill.Duplicate(), Delay, IsShield);
         }
 
-        public Weapon(string name, string desc, weaponSlots slot, damageTypes dType, equipmentEnhancements enhanced, Skill s, bool isShield)
+        public Weapon(string name, string desc, weaponSlots slot, damageTypes dType, equipmentEnhancements enhanced, Skill s, int delay, bool isShield)
             : base(name, gameObjectTypes.weapon, enhanced, s, desc)
         {
             this.Slot = slot;
             this.DType = dType;
             this.IsShield = isShield;
+            this.Delay = delay;
         }
     }
 
@@ -101,8 +103,8 @@ namespace GameLibrary
         /// <summary>
         /// Constraints for shield slots is to be either LH, RH, or Both Hands
         /// </summary>
-        public Shield(string name, string desc, weaponSlots shieldSlot, equipmentEnhancements enhanced, Skill s)
-            : base(name, desc, shieldSlot, damageTypes.bludgeon, enhanced, s, true) //base(name, desc, armorSlots.shield, enhanced, s)
+        public Shield(string name, string desc, weaponSlots shieldSlot, equipmentEnhancements enhanced, Skill s, int delay)
+            : base(name, desc, shieldSlot, damageTypes.bludgeon, enhanced, s, delay, true) //base(name, desc, armorSlots.shield, enhanced, s)
         {
         }
     }

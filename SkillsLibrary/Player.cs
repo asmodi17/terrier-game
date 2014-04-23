@@ -355,7 +355,8 @@ namespace GameLibrary
         public string EquipWeapon(string weapon, weaponSlots slot)
         {
             GameObject item = GetItemInInventory(weapon);
-            if (item != null && item.Type != gameObjectTypes.weapon)
+            if (item == null) return weapon + " could not be found.";
+            else if (item.Type != gameObjectTypes.weapon)
             {
                 return item.Name + " is not a weapon or shield.";
             }
@@ -407,7 +408,11 @@ namespace GameLibrary
                 result += "You are now wielding " + weapon.Name + ".\n";
             }
 
+            // The goal here is to set up a single attack action which sets its delay based on equipped weapons.
+            // This means we need to have two calls to SetAttackActionDelay which will determine the delay,
+            // one when a player is created, and one here in EquipWeaponFromInventory.
             GetNewSkills();
+            SetAttackActionDelay();
             GenDesc();
             return result;
         }
@@ -656,6 +661,48 @@ namespace GameLibrary
                 skillToAdd.SetMod(this);
                 Skills.Add(skillToAdd);
             }
+
+            DefendingAction = null;
+            BuffingActions = new HashSet<PlayerBattleAction>();
+
+            SetAttackActionDelay();
+        }
+
+        private void SetAttackActionDelay()
+        {
+            // Get the Attack Action from a player's Actions
+            IAction attackAction = GetAction("Attack");
+            if (attackAction.Type != actionTypes.battleAction)
+            {
+                throw new ArgumentException("Attack should always be a PlayerBattleAction.");
+            }
+            PlayerBattleAction attack = (PlayerBattleAction)attackAction;
+
+            int count = 0;
+            int delay = 0;
+
+            foreach (Weapon w in GetWeapons("Attack"))
+            {
+                // Weapons should have a Delay property.
+                count++;
+                delay += w.Delay;
+            }
+            if (count > 1)
+            {
+                attack.SetDelay(delay / count);
+            }
+            else if (count == 1)
+            {
+                delay += 500;
+                count++;
+                attack.SetDelay(delay / count);
+            }
+            else
+            {
+                // Set the Attack Action delay to the default for Brawling.  500
+                attack.SetDelay(500);
+            }
+            Console.WriteLine(Name + " Attack Delay set to " + attack.Delay.ToString());
         }
 
         /// <summary>
@@ -750,23 +797,59 @@ namespace GameLibrary
 
         private PlayerBattleAction DefendingAction;
 
-        private void PerformDefend(PlayerBattleAction playerBattleAction)
+        /// <summary>
+        /// RemoveDefending Action should get called as soon as the DefendingAction.Timer elapses
+        /// </summary>
+        /// 
+        public void RemoveDefendingAction(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            DefendingAction = null;
+        }
+
+        private void PerformDefend(PlayerBattleAction defendAction)
         {
             // A Defend action raises defense against a specific type of damage.  This should only last
             // Delay amount of time.  This means that a player can only be defending once at a time,
             // effects do not stack, and if another Defend is currently ongoing, that Defend should
             // either block the requested Defend, or be replaced by the current Defend
             // It is possible to have a Timer for effects that occur over time.
+
+            if (defendAction.CanPerform)
+            {
+                if (DefendingAction != null) return;
+
+                DefendingAction = defendAction;
+                defendAction.CanPerform = false;
+                defendAction.Timer.Elapsed += new System.Timers.ElapsedEventHandler(RemoveDefendingAction);
+                defendAction.Timer.Start();
+            }
         }
 
         // It is possible that a player would be able to have multiple Buff Actions
         // active at any given time.  This should probably be a collection.
         // It is also possible for a Buff to have a negative effect (i.e. poisons)
-        private PlayerBattleAction BuffingAction;
+        private HashSet<PlayerBattleAction> BuffingActions;
 
-        private void PerformBuff(PlayerBattleAction playerBattleAction)
+        public void RemoveBuffingAction(object sender, System.Timers.ElapsedEventArgs e, PlayerBattleAction a)
+        {
+            BuffingActions.Remove(a);
+
+            // TODO:
+            // Need to actually perform the debuff.
+        }
+
+        private void PerformBuff(PlayerBattleAction buffingAction)
         {
             // A Buff action raises a certain stat for a specific amount of time.
+            if (BuffingActions.Contains(buffingAction)) return;
+
+            // TODO:
+            // Need to actually perform the buff.
+
+            BuffingActions.Add(buffingAction);
+            buffingAction.CanPerform = false;
+            buffingAction.Timer.Elapsed += (sender, e) => RemoveBuffingAction(sender, e, buffingAction);
+            buffingAction.Timer.Start();
         }
 
         // Combat Skills:
@@ -806,6 +889,9 @@ namespace GameLibrary
                 throw new ArgumentException("Attack actions must target players");
             }
 
+            // TODO:
+            // Need to take into account DefendingAction.
+
             // Roll for each Player.  Attacker and Defender both get rolls.  If an Attacker gets a 1, he always misses
             // Ties go to Defender.
             Player Defender = (Player)a.Target;
@@ -833,69 +919,18 @@ namespace GameLibrary
                 // Failure produces more possibility of improvement than a success
                 // When it is a hit, we need to increment the rankXP for all skills associated
                 // This means we need to improve hit, damage, all weapon skills, and multiple attacks (if applicable)
+                PerformHitImproveCheck(Defender, false);
 
-                // Only improve if the player initiating the attack is a PC, not an NPC
-                if (IsPlayer)
-                {
-                    HashSet<Skill> skillsToImprove = new HashSet<Skill>();
-                    skillsToImprove.Add(GetSkill("Hit"));
-                    int count = 0;
-                    foreach (Weapon w in GetWeapons("Attack"))
-                    {
-                        skillsToImprove.Add(GetSkill(w.AssociatedSkill.Name));
-                        count = count + 1;
-                    }
-                    if (count >= 2) skillsToImprove.Add(GetSkill("Multiple Attacks"));
-                    else if (count == 0) skillsToImprove.Add(GetSkill("Brawling"));
-
-                    // As the RankXP of a given skill gets closer to the max XP for that rank, the possibility of a 
-                    // repetitive improve should decrease.  Ideally, we want the range for chance improvements to be
-                    // around 0.5 for RankXP==0, and 0.1 for RankXP==(MaxXP-1)
-                    // Log10(3) ~0.5, Log10(1.025) ~0.01
-                    // The range for an improvement should be 1.025 to 3
-                    foreach (Skill s in skillsToImprove)
-                    {
-                        Skill parry = Defender.GetSkill("Parry");
-                        Skill dodge = Defender.GetSkill("Dodge");
-                        int higherDefenderSkillMod = (parry.Ranks >= dodge.Ranks) ? parry.Mod : dodge.Mod;
-                        s.CheckForRepetitiveImprove(this, R, higherDefenderSkillMod, false);
-                    }
-                }
+                // There is also a chance for the defender to improve
+                Defender.PerformDefenseImproveCheck(this, true);
             }
             else
             {
                 // It was a hit
+                PerformHitImproveCheck(Defender, true);
 
-                // Only improve the defender if the Defender is a PC, not an NPC
-                if (Defender.IsPlayer)
-                {
-                    HashSet<Skill> skillsToImprove = new HashSet<Skill>();
-                    int count = 0;
-                    foreach (Weapon w in Defender.GetWeapons("Parry"))
-                    {
-                        skillsToImprove.Add(Defender.GetSkill(w.AssociatedSkill.Name));
-                        count = count + 1;
-                    }
-
-                    skillsToImprove.Add(Defender.GetSkill("Dodge"));
-
-                    if (count >= 2)
-                    {
-                        skillsToImprove.Add(Defender.GetSkill("Multiple Attacks"));
-                        skillsToImprove.Add(Defender.GetSkill("Parry"));
-                    }
-                    else if (count == 0) skillsToImprove.Add(Defender.GetSkill("Brawling"));
-                    else skillsToImprove.Add(Defender.GetSkill("Parry"));
-
-                    foreach (Skill s in skillsToImprove)
-                    {
-                        // If brawling is being used, then we can check for dodge improvements twice (as the player
-                        // cannot use parry)
-                        Skill hitSkill = GetSkill("Hit");
-                        if (count == 0 && s.Name.Equals("Dodge")) s.CheckForRepetitiveImprove(Defender, R, hitSkill.Mod, false);
-                        s.CheckForRepetitiveImprove(Defender, R, hitSkill.Mod, false);
-                    }
-                }
+                // There is a chance for the defender to improve
+                Defender.PerformDefenseImproveCheck(this, false);
 
                 // Can't just do this.
                 // Armor reduces damage. DamageReduction reduces damage
@@ -924,6 +959,64 @@ namespace GameLibrary
                 Defender.SetStat(stats.HP, (int)HPModifier);
                 Console.WriteLine(Name + " hit " + Defender.Name + " for " + (-(int)HPModifier).ToString() + " damage.");
                 Console.WriteLine(Defender.Name + " HP Ratio: " + Defender.HPRatio.ToString("F2"));
+            }
+        }
+
+        private void PerformDefenseImproveCheck(Player Attacker, bool BlockSuccess)
+        {
+            HashSet<Skill> skillsToImprove = new HashSet<Skill>();
+            int count = 0;
+            foreach (Weapon w in GetWeapons("Parry"))
+            {
+                skillsToImprove.Add(GetSkill(w.AssociatedSkill.Name));
+                count = count + 1;
+            }
+
+            skillsToImprove.Add(GetSkill("Dodge"));
+
+            if (count >= 2)
+            {
+                skillsToImprove.Add(GetSkill("Multiple Attacks"));
+                skillsToImprove.Add(GetSkill("Parry"));
+            }
+            else if (count == 0) skillsToImprove.Add(GetSkill("Brawling"));
+            else skillsToImprove.Add(GetSkill("Parry"));
+
+            foreach (Skill s in skillsToImprove)
+            {
+                Skill hitSkill = Attacker.GetSkill("Hit");
+                // If brawling is being used, then we can check for dodge improvements twice (as the player
+                // cannot use parry)
+                if (count == 0 && s.Name.Equals("Dodge")) s.CheckForRepetitiveImprove(this, R, hitSkill.Mod, false);
+                s.CheckForRepetitiveImprove(this, R, hitSkill.Mod, false);
+            }
+        }
+
+        public void PerformHitImproveCheck(Player Defender, bool HitSuccess)
+        {
+            HashSet<Skill> skillsToImprove = new HashSet<Skill>();
+
+            skillsToImprove.Add(GetSkill("Hit"));
+            int count = 0;
+            foreach (Weapon w in GetWeapons("Attack"))
+            {
+                skillsToImprove.Add(GetSkill(w.AssociatedSkill.Name));
+                count = count + 1;
+            }
+            if (count >= 2) skillsToImprove.Add(GetSkill("Multiple Attacks"));
+            else if (count == 0) skillsToImprove.Add(GetSkill("Brawling"));
+
+            // As the RankXP of a given skill gets closer to the max XP for that rank, the possibility of a 
+            // repetitive improve should decrease.  Ideally, we want the range for chance improvements to be
+            // around 0.5 for RankXP==0, and 0.1 for RankXP==(MaxXP-1)
+            // Log10(3) ~0.5, Log10(1.025) ~0.01
+            // The range for an improvement should be 1.025 to 3
+            foreach (Skill s in skillsToImprove)
+            {
+                Skill parry = Defender.GetSkill("Parry");
+                Skill dodge = Defender.GetSkill("Dodge");
+                int higherDefenderSkillMod = (parry.Ranks >= dodge.Ranks) ? parry.Mod : dodge.Mod;
+                s.CheckForRepetitiveImprove(this, R, higherDefenderSkillMod, HitSuccess);
             }
         }
 
