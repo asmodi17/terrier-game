@@ -63,6 +63,7 @@ namespace GameLibrary
 
         // A BattleAction has a target
         public GameObject Target;
+
         public PlayerBattleAction(string name, int delay, battleActionTypes bType)
         {
             this.Name = name;
@@ -114,6 +115,7 @@ namespace GameLibrary
             if (p != null)
             {
                 p.SetStat(Stat, Damage);
+                Console.WriteLine(p.Name + " has been buffed!");
             }
             else
             {
@@ -128,6 +130,8 @@ namespace GameLibrary
             if (p != null)
             {
                 p.SetStat(Stat, -Damage);
+                BuffTimer.Stop();
+                Console.WriteLine(p.Name + " is back to normal!");
             }
             else
             {
@@ -142,6 +146,7 @@ namespace GameLibrary
             BuffTimer = new System.Timers.Timer((double)buffDelay);
             BuffDelay = buffDelay;
             SetDamage(damage);
+            //BuffTimer.Elapsed += (sender, e) => this.PerformDeBuff();
         }
 
         public override IAction Duplicate()

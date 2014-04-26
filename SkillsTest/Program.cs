@@ -71,6 +71,24 @@ namespace GameLibraryTest
                 }
             }
 
+            IAction rallyA = A.GetAction("Rally");
+            if (rallyA != null)
+            {
+                if (rallyA.Type == actionTypes.battleAction)
+                {
+                    ((PlayerBattleAction)rallyA).Target = A;
+                }
+            }
+
+            IAction rallyB = B.GetAction("Rally");
+            if (rallyB != null)
+            {
+                if (rallyB.Type == actionTypes.battleAction)
+                {
+                    ((PlayerBattleAction)rallyB).Target = B;
+                }
+            }
+
             A.PerformAction(someAction);
 
             //Console.WriteLine(A.HPRatio);
@@ -96,6 +114,9 @@ namespace GameLibraryTest
                     {
                         B.PerformAction(someOtherAction);
                     }
+
+                    A.PerformAction(rallyA);
+                    B.PerformAction(rallyB);
                 }
             }
 
@@ -224,6 +245,11 @@ namespace GameLibraryTest
             skillActions.Add(haftedAttack);
             Skill Hafted = new Skill("Hafted", sf[families.physicalAttack], skillActions, true);
 
+            BuffAction rally = new BuffAction("Rally", 10000, 5000, stats.strength, 5);
+            skillActions = new List<IAction>();
+            skillActions.Add(rally);
+            Skill Support = new Skill("Support", sf[families.knowledge], skillActions, false);
+
             skills.Add("Parry", Parry);
             skills.Add("Dodge", Dodge);
             skills.Add("Hit", Hit);
@@ -233,6 +259,7 @@ namespace GameLibraryTest
             skills.Add("Shield", Shield);
             skills.Add("Greave Blades", GreaveBlades);
             skills.Add("Hafted", Hafted);
+            skills.Add("Support", Support);
         }
 
         static Dictionary<string, Skill> InitializePlayerSkillSet(Dictionary<string, Skill> skills)

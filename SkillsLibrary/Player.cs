@@ -832,10 +832,14 @@ namespace GameLibrary
 
         public void RemoveBuffingAction(object sender, System.Timers.ElapsedEventArgs e, PlayerBattleAction a)
         {
-            BuffingActions.Remove(a);
+            if (BuffingActions.Contains(a))
+            {
+                BuffingActions.Remove(a);
 
-            // TODO:
-            // Need to actually perform the debuff.
+                // TODO:
+                // Need to actually perform the debuff.
+                ((BuffAction)a).PerformDeBuff();
+            }
         }
 
         private void PerformBuff(PlayerBattleAction buffingAction)
@@ -845,11 +849,13 @@ namespace GameLibrary
 
             // TODO:
             // Need to actually perform the buff.
+            ((BuffAction)buffingAction).PerformBuff();
 
             BuffingActions.Add(buffingAction);
             buffingAction.CanPerform = false;
-            buffingAction.Timer.Elapsed += (sender, e) => RemoveBuffingAction(sender, e, buffingAction);
+            ((BuffAction)buffingAction).BuffTimer.Elapsed += (sender, e) => RemoveBuffingAction(sender, e, buffingAction);
             buffingAction.Timer.Start();
+            ((BuffAction)buffingAction).BuffTimer.Start();
         }
 
         // Combat Skills:
