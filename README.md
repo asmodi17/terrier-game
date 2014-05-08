@@ -8,7 +8,7 @@ This project is written in C#.
 The goal of this project is to create a working skill-based rpg engine that is system agnostic and can be used with any visualization engine.
 
 Currently this project is in alpha stages with the following working features:
-  Combat - Attack and Block are the only supported combat actions
+  Combat - Attack, Defend, and Buff are the only currently supported combat actions
   Skills - Only combat skills are supported - Hit, Parry, Dodge, Multiple Attacks, asstd. weapon skills
   
 Organization:
